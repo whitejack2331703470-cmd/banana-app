@@ -7,27 +7,19 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  ReferenceArea,
-  TooltipProps
+  ReferenceArea
 } from 'recharts';
 import { PopButton } from './components/PopButton';
 import { ChartFrame } from './components/ChartFrame';
 import { MOCK_DATA, transformJsonToCountryData, getUnifiedChartData } from './utils/data';
-import { CountryData, CountryId } from './types';
 import { getAnalysis } from './services/MarketAnalysis';
 
 // --- Custom Tooltip Component ---
-interface CustomTooltipProps extends TooltipProps<number, string> {
-  confirmedAmount: number;
-  payload?: any[];
-  label?: string | number;
-}
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, confirmedAmount }) => {
+const CustomTooltip = ({ active, payload, label, confirmedAmount }) => {
   if (active && payload && payload.length) {
     // 1. Logic: Find the lowest unit price in the current dataset
     const validEntries = payload.filter(p => typeof p.value === 'number');
-    const minPrice = Math.min(...validEntries.map(p => p.value as number));
+    const minPrice = Math.min(...validEntries.map(p => p.value));
 
     return (
       <div className="bg-white border-4 border-black p-4 shadow-hard-lg min-w-[320px] z-50">
@@ -40,7 +32,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, c
         
         {/* Comparison List */}
         <div className="flex flex-col gap-3">
-          {payload.map((entry: any, index: number) => {
+          {payload.map((entry, index) => {
              const unitPrice = entry.value;
              const total = unitPrice * confirmedAmount;
              const isCheapest = unitPrice === minPrice;
@@ -101,13 +93,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, c
 };
 
 // --- Banana Button Component (With Squish & Pop) ---
-interface BananaButtonProps {
-  onClick: () => void;
-  isConfirmed: boolean;
-  amount: number;
-}
-
-const BananaButton: React.FC<BananaButtonProps> = ({ onClick, isConfirmed, amount }) => {
+const BananaButton = ({ onClick, isConfirmed, amount }) => {
   const [isBursting, setIsBursting] = useState(false);
   const [isSquishing, setIsSquishing] = useState(false);
 
@@ -209,26 +195,26 @@ const BananaButton: React.FC<BananaButtonProps> = ({ onClick, isConfirmed, amoun
 };
 
 
-const App: React.FC = () => {
-  const [countryData, setCountryData] = useState<CountryData[]>(MOCK_DATA);
-  const [selectedCountries, setSelectedCountries] = useState<Set<CountryId>>(new Set(['columbia', 'costaRica', 'guatemala', 'panama']));
-  const [yearStart, setYearStart] = useState<number>(2019);
-  const [yearEnd, setYearEnd] = useState<number>(2026);
-  const [analyses, setAnalyses] = useState<Record<string, string>>({});
-  const [loadingAnalysis, setLoadingAnalysis] = useState<Record<string, boolean>>({});
+const App = () => {
+  const [countryData, setCountryData] = useState(MOCK_DATA);
+  const [selectedCountries, setSelectedCountries] = useState(new Set(['columbia', 'costaRica', 'guatemala', 'panama']));
+  const [yearStart, setYearStart] = useState(2019);
+  const [yearEnd, setYearEnd] = useState(2026);
+  const [analyses, setAnalyses] = useState({});
+  const [loadingAnalysis, setLoadingAnalysis] = useState({});
   
   // Calculator State
-  const [purchaseInput, setPurchaseInput] = useState<string>('');
-  const [confirmedAmount, setConfirmedAmount] = useState<number>(0);
+  const [purchaseInput, setPurchaseInput] = useState('');
+  const [confirmedAmount, setConfirmedAmount] = useState(0);
   // We use a derived boolean for visual state, but rely on confirmedAmount > 0 for logic
   const isConfirmed = confirmedAmount > 0;
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef(null);
 
   // Unified year options for both dropdowns
   const YEAR_OPTIONS = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027];
 
-  const toggleCountry = (id: CountryId) => {
+  const toggleCountry = (id) => {
     const newSet = new Set(selectedCountries);
     if (newSet.has(id)) {
       newSet.delete(id);
@@ -238,7 +224,7 @@ const App: React.FC = () => {
     setSelectedCountries(newSet);
   };
 
-  const handleWarholize = async (countryName: string, id: string) => {
+  const handleWarholize = async (countryName, id) => {
     if (loadingAnalysis[id]) return;
 
     setLoadingAnalysis(prev => ({ ...prev, [id]: true }));
@@ -250,14 +236,14 @@ const App: React.FC = () => {
     setLoadingAnalysis(prev => ({ ...prev, [id]: false }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const jsonContent = evt.target?.result as string;
+        const jsonContent = evt.target?.result;
         const parsed = JSON.parse(jsonContent);
         const newData = transformJsonToCountryData(parsed);
         
@@ -269,7 +255,7 @@ const App: React.FC = () => {
         setCountryData(newData);
         
         // Ensure comparison is immediately visible by selecting all new countries
-        const newSelection = new Set<CountryId>();
+        const newSelection = new Set();
         newData.forEach(c => newSelection.add(c.id));
         setSelectedCountries(newSelection);
         
@@ -369,7 +355,7 @@ const App: React.FC = () => {
               Banana<br/><span className="text-pop-magenta">Forecast</span>
             </h1>
           </div>
-         
+          
           <div className="flex flex-col items-center md:items-end gap-2">
             <div className="flex gap-2">
               <span className="font-bold bg-black text-white px-2 py-1 transform rotate-2">FACTORY EDITION</span>
@@ -448,9 +434,9 @@ const App: React.FC = () => {
               </div>
               <div className="flex-shrink-0 pt-2 flex flex-col items-center justify-center">
                  <BananaButton 
-                    onClick={handleConfirmAmount} 
-                    isConfirmed={isConfirmed}
-                    amount={confirmedAmount}
+                   onClick={handleConfirmAmount} 
+                   isConfirmed={isConfirmed}
+                   amount={confirmedAmount}
                  />
               </div>
               {confirmedAmount > 0 && (
